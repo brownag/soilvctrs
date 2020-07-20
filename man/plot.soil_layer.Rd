@@ -21,7 +21,7 @@
 
 \item{ymax}{Length (from 0) in (negative Z direction) of plot Y-axis}
 
-\item{...}{Additional arguments to \code{base.plot.method(...)} for each layer}
+\item{...}{Additional arguments to \code{plot(..., add=TRUE)} call for each layer}
 }
 \value{
 A base graphics plot (to the current graphics device)

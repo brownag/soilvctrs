@@ -7,7 +7,7 @@ library(soilvctrs)
 library(aqp)
 library(soilDB)
 
-data(loafercreek)
+data(loafercreek, package = "soilDB")
 
 sites <- site(loafercreek)
 horizons <-  horizons(loafercreek)
@@ -54,12 +54,19 @@ profiles <- soil_profile(
 # geom at site level is x,y,z position (e.g. lat, long, elevation)
 plot(profiles$geom)
 
-# site level attributes are stored in the soil_list class
+# site level attributes are stored in the soil_profile class
 profiles
 
 # plot method for soil_profile
 plot(profiles, ymax = 100)
 
 # plot method for soil_layer
-plot(layer.list[[1]]$geom)
+p <- profiles$profile[[1]]
+plot(, ymax = 150)
+coord <- geovctrs::geo_coordinates(profiles$profile[[1]]$geom)
+lines(1+0.5*cos(seq(0, 1, 0.01)*pi), 150*seq(0, 1, 0.01))
+abline(v=0)
+library(ggplot2)
+
+(profiles[,c('pid','geom')])
 

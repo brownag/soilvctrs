@@ -4,7 +4,7 @@
 \alias{plot.soil_layer.base}
 \title{Default plot function for soil_layer -- sets axes etc.}
 \usage{
-\method{plot}{soil_layer.base}(x, xmax = length(x), ymax = 200, ...)
+\method{plot}{soil_layer.base}(x, xmax = length(x), ymax = 200, xlab = "Profile Index", ylab = "Z")
 }
 \arguments{
 \item{x}{A soil_layer (generally from single soil_profile)}
@@ -13,7 +13,9 @@
 
 \item{ymax}{Length (from 0) in (negative Z direction) of plot Y-axis}
 
-\item{...}{Additional arguments to \code{plot}}
+\item{xlab}{X-axis Label}
+
+\item{ylab}{Y-axis Label}
 }
 \value{
 A base graphics plot (to the current graphics device)

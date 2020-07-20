@@ -1,1 +1,0 @@
-# soilvctrs hexstickers

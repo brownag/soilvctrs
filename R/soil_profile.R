@@ -23,6 +23,7 @@ soil_profile <-
              ztop     = "ztop",
              zbot     = "zbot"
            )) {
+
     if (!all(c("pid","hid","x","y","z","ztop","zbot") %in% names(metadata))) {
       warning("reverting to default metadata due to missing values")
       metadata <- default_metadata_soil_profile()
@@ -48,7 +49,7 @@ soil_profile <-
   ## simple checks on IDs and spatial coordinates of the list elements (site level)
 
   if (length(uid) != length(profile))
-    stop("number of soil_profile IDs must match number of soil_layer elements in vector")
+    stop("number of soil_profile IDs must match number of soil_layer elements in input vector")
 
   xposd <- site[[xpos]]
   yposd <- site[[ypos]]
@@ -207,12 +208,17 @@ is.soil_profile <- function(x) {
 `[.soil_profile`  <- function(x, i = NULL, j = NULL) {
   # TODO: completely refactor
   # i subset
+  if(is.null(i))
+    i <- 1:length(x)
+
   fldnm <- vctrs::fields(x)
   newdata <- lapply(fldnm, vctrs::field, x = x)
   newdata <- lapply(1:length(fldnm), function(ii) {
     ndi <- newdata[[ii]]
-    if (any(i %in% 1:length(ndi))) {
+    if (any(abs(i) %in% 1:length(ndi))) {
       return(ndi[i])
+    } else if (i == 0) {
+      return(ndi[0])
     }
   })
   names(newdata) <- fldnm
@@ -259,14 +265,13 @@ print.soil_profile <- function(x, ...) {
     (att1 <- capture.output(str(attributes(x))))
     att2 <- att1[!grepl("\\$ (names|class)", att1)]
     att3 <- trimws(gsub("\\$ ([A-Za-z\\.\\_]+).*:.*", "\\1", att2))
+    attnm <- att3[2:length(att3)]
+    nicefields <- paste(fldnm, collapse = ", ")
+    niceattr <- paste(attnm, collapse = ", ")
 
-
-    (out <- capture.output(str(head(x$profile))))
-    out[1] <- sprintf("soil_profile<%s> with %s fields and attributes: %s",
-                      length(res[[1]]), length(fldnm),
-                      paste0(att3[2:length(att3)], collapse=", "))
-    out2 <- paste(out, collapse = "\n")
-    return(cat(out[1]))
+    out <- sprintf("soil_profile<%s> with %s fields and %s attributes\nFields: %s\nAttributes: %s\n",
+                   length(res[[1]]),length(fldnm),length(attnm), nicefields, niceattr)
+    cat(out)
   }
 }
 

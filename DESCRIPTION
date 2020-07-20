@@ -4,14 +4,12 @@ Title: Geometric and topologic operations on stratified environmental data
 Version: 0.0.0.1
 Author: Andrew G. Brown
 Imports: methods, vctrs, geovctrs
-Suggests: 
-    testthat,
-    tibble,
-    covr
+Suggests: testthat, tibble, covr
+Remotes: paleolimbot/geovctrs
 Maintainer: Andrew G. Brown <brown.andrewg@gmail.com>
-Description: This is an experimental package that seeks to abstract geometric and topologic operations on stratified environmental data such as soil profile descriptions.
-    The primary goal is to provide extracting/transforming functions and new geometry classes that “just work” with the tidyverse and other geometry packages. 
-License: MIT
+Description: soilvctrs performs geometric operations on stratified environmental data such as soil profile descriptions. 
+    The goals are two-fold: 1) provide abstractions for soils data that “just work” with the tidyverse and 2) be "lightweight" enough to use as a dependency in other packages.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 7.1.1

@@ -178,13 +178,37 @@ test_that("constructing a soil_profile", {
 })
 
 test_that("[ and [<-", {
+
+  # extract pid
   expect_equal(res2$pid, 1:4)
+
+  # change pid
   expect_silent(res2$pid <- 5:8)
+
+  # check changed pid
   expect_equal(res2$pid, 5:8)
+
+  # extract pid
   expect_equal(res2[1:4, "pid"], 5:8)
-  expect_equal(res2[1:4, c("pid", "geom")], structure(list(5:8, c(1, 2, 3, 4), c(1, 2, 3, 4), c(1, 2, 3, 4)),
-                                            .Names = c("pid", "geom", NA, NA), row.names = c(NA, -4L),
-                                            class = c("tbl_df", "tbl", "data.frame")))
+
+  # check i = NULL
+  expect_equal(res2[1:4, "pid"], res2[, "pid"])
+
+  # check i = 0
+  expect_equal(res2[0, "pid"], integer(0))
+
+  # check i < 0
+  expect_equal(res2[-4, "pid"], 5:7)
+
+  # check i = 0 with j names  > 1
+  expect_equal(res2[0, c("pid", "geom")], tibble::tibble(pid = integer(0),
+                                                         geom = geovctrs::geo_xyz()))
+
+  # check i = NULL with j names > 1
+  expect_equal(res2[, c("pid", "geom")], tibble::tibble(pid = 5:8,
+                                                        geom = geovctrs::geo_xyz(x = 1:4,
+                                                                                 y = 1:4,
+                                                                                 z = 1:4)))
 })
 
 test_that("error handling", {
@@ -195,31 +219,28 @@ test_that("error handling", {
   expect_error(soil_profile(layer = NA, site = NA))
   expect_error(expect_warning(soil_profile(layer = NA, site = NA, metadata = NA)))
   expect_error(soil_profile(layer = NULL))
-  expect_silent(soil_profile(site = NULL)) #empty, uses default metadata + layer, no site needed
   expect_error(soil_profile(layer = NULL, site = NULL))
   expect_error(expect_warning(soil_profile(layer = NULL, site = NULL, metadata = NULL)))
 
+  # empty, uses default metadata + empty layer, no site needed
+  expect_silent(soil_profile(site = NULL))
 
   # 3 sites records, but 1 empty profile
   site <- data.frame(pid = 1:3, x = 1:3, y = 1:3, z = 1:3)
   expect_error(soil_profile(layer = data.frame(), site = site))
 
-
   # character id not allowed
   site <- data.frame(pid = LETTERS[1:3], x = 1:3, y = 1:3, z = 1:3)
-  expect_error(soil_profile(layer = data.frame(pid=1:3, hid=1:3,
-                                                    ztop=1:3, zbot=1:3),
-                                 site = site))
+  layer <- data.frame(pid=1:3, hid=1:3, ztop=1:3, zbot=1:3)
+  expect_error(soil_profile(layer = layer,site = site))
 
   # with correct id and right number of elements in profile, no error
   site <- data.frame(pid = 1:3, x = 1:3, y = 1:3, z = 1:3)
-  expect_silent(soil_profile(layer = data.frame(pid=1:3, hid=1:3,
-                                                ztop=1:3, zbot=1:3), site = site))
+  expect_silent(soil_profile(layer = layer, site = site))
 
   # with correct id and wrong number of elements  error
   site <- data.frame(pid = 1:3, x = 1:3, y = 1:3, z = 1:3)
-  expect_error(soil_profile(layer = data.frame(pid=1:2, hid=1:2,
-                                                ztop=1:2, zbot=1:2), site = site))
+  expect_error(soil_profile(layer = layer[1:2,], site = site))
 
   # with correct id and metadata not specified for nonstandard coordinates
   site <- data.frame(pid = 1:3, xx = 1:3, yy = 1:3, zz = 1:3)
@@ -228,7 +249,7 @@ test_that("error handling", {
 })
 
 test_that("plotting a soil_profile", {
-  expect_silent(plot(soil_profile()))
+  expect_silent(plot(soil_profile())) #empty profile
   expect_silent(plot(res2$geom)) # spatial data [x,y,z]
   expect_silent(plot(res2))      # profile (horizon) data
 })
@@ -236,8 +257,9 @@ test_that("plotting a soil_profile", {
 test_that("one-depth-unit thick layers", {
  ten100 <- data.frame(pid = do.call('c',lapply(1:10, rep, 100)),
              hid = rep(1:100, 10), ztop = rep(0:99, 10), zbot = rep(1:100, 10))
- expect_silent(slices <- soil_profile(ten100, site = data.frame(pid = 1:10,x = 1:10,y = 1, z = 0)))
- expect_silent(plot(slices, ymax = 100))
+ expect_silent(cake <- soil_profile(ten100, site = data.frame(pid = 1:10,
+                                                              x = 1:10, y = 1, z = 0)))
+ expect_silent(plot(cake, ymax = 100))
 })
 
 test_that("realistic data", {

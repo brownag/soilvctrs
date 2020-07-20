@@ -167,6 +167,14 @@ is.soil_layer <- function(x) {
   return(inherits(x, 'soil_layer'))
 }
 
+#' @export
+vec_ptype2.list.soil_layer <- function(x, y, metadata, ...) {
+  if (!requireNamespace("tibble"))
+    stop("package `tibble` is required", call. = FALSE)
+  if (!is.null(metadata))
+    return(soil_layer(layer = tibble::tibble(x), metadata = metadata))
+  soil_layer(layer = tibble::tibble(x))
+}
 
 #' Cash soil_layer
 #'
@@ -262,17 +270,27 @@ is.soil_layer <- function(x) {
 }
 
 .singlebracketj <- function(p, i = NULL, j = NULL) {
-  # TODO: completely refactor this
+  # TODO: refactor this idea
   # if j is a character, return a tibble view
+
   if (!is.null(j)){
     if (is.character(j) & length(j) > 0) {
+
       fld <- vctrs::fields(p)
       keep.fld <- fld %in% j
-      if(sum(keep.fld) > 1) {
-        res <- data.frame(lapply(fld[keep.fld], vctrs::field, x = p))
-        if(requireNamespace("tibble"))
+
+      if (sum(keep.fld) > 1) {
+        res <- do.call('cbind', lapply(fld[keep.fld], function(xx) {
+          tbb <- tibble::tibble(vctrs::field(p, xx))
+          colnames(tbb) <- xx
+          return(tbb)
+        }))
+
+        if (requireNamespace("tibble"))
           res <- tibble::tibble(res)
+
         colnames(res) <- j
+
         return(res)
       } else {
         return(vctrs::field(p, fld[keep.fld]))
@@ -324,13 +342,13 @@ print.soil_layer <- function(x, ...) {
     (att1 <- capture.output(str(attributes(x))))
     att2 <- att1[!grepl("\\$ (names|class)", att1)]
     att3 <- trimws(gsub("\\$ ([A-Za-z\\.\\_]+).*:.*", "\\1", att2))
+    attnm <- att3[2:length(att3)]
+    nicefields <- paste(fldnm, collapse = ", ")
+    niceattr <- paste(attnm, collapse = ", ")
 
-    (out <- capture.output(str(res, give.attr = FALSE)))
-    out[1] <- sprintf("soil_layer<%s> with %s fields and attributes: %s",
-                      length(res[[1]]), length(fldnm),
-                      paste0(att3[2:length(att3)], collapse=", "))
-    out2 <- paste(out, collapse = "\n")
-    cat(out[1])
+    out <- sprintf("soil_layer<%s> with %s fields and %s attributes\nFields: %s\nAttributes: %s\n",
+                      length(res[[1]]),length(fldnm),length(attnm), nicefields, niceattr)
+    cat(out)
   }
 }
 #' Rudimentary plotting method for soil_profile
@@ -341,7 +359,7 @@ print.soil_layer <- function(x, ...) {
 #' @param base.plot.method A function that can take x as an argument to set up plot pane. Default is \code{plot.soil_layer.base}.
 #' @param xmax Length (from 0) of X-axis (profile index axis)
 #' @param ymax Length (from 0) in (negative Z direction) of plot Y-axis
-#' @param ... Additional arguments to \code{base.plot.method(...)} for each layer
+#' @param ... Additional arguments to \code{plot(..., add=TRUE)} call for each layer
 #'
 #' @return A base graphics plot (to the current graphics device)
 #'
@@ -352,9 +370,9 @@ plot.soil_layer <- function(x,
                             base.plot.method = plot.soil_layer.base,
                             xmax = length(x), ymax = 200,
                             ...) {
-  base.plot.method(x, xmax, ymax, ...)
+  base.plot.method(x, xmax, ymax)
   layer_geoms <- vctrs::field(x, "geom")
-  out <- lapply(layer_geoms, function(pg) plot(pg, add = TRUE))
+  out <- lapply(layer_geoms, function(pg) plot(pg, ..., add = TRUE))
 }
 
 #'  Default plot function for soil_layer -- sets axes etc.
@@ -362,20 +380,24 @@ plot.soil_layer <- function(x,
 #' @param x A soil_layer (generally from single soil_profile)
 #' @param xmax Length (from 0) of X-axis (profile index axis)
 #' @param ymax Length (from 0) in (negative Z direction) of plot Y-axis
-#' @param ... Additional arguments to \code{plot}
+#' @param xlab X-axis Label
+#' @param ylab Y-axis Label
 #' @return A base graphics plot (to the current graphics device)
 #' @export plot.soil_layer.base
 #'
-plot.soil_layer.base = function(x, xmax = length(x), ymax = 200, ...) {
+plot.soil_layer.base = function(x,
+                                xmax = length(x),
+                                ymax = 200,
+                                xlab = "Profile Index",
+                                ylab = "Z") {
   xlim <- -1:2
   if(length(x) > 0) {
     xlim_pad <- vctrs::field(geovctrs::geo_bbox(x$geom),"xmin")
     if(!is.na(xlim_pad))
       xlim <- xlim + xlim_pad
   }
+
   xax <- pretty(xlim, n = 1001)[1:1000]
   yax <- pretty(0:-ymax, n = 1001)[1:1000]
-  plot(xax, yax,
-       xlab = "Profile Index",
-       ylab = "Z", type = "n", axes = FALSE)
+  plot(x = xax, y = yax, xlab = xlab, ylab = ylab, type = "n", axes = FALSE)
 }

@@ -1,4 +1,5 @@
 library(tibble)
+library(wk)
 library(vctrs)
 library(geovctrs)
 
@@ -26,7 +27,7 @@ res <- geo_envelope(tibble(geom = geometries)) # data.frame
 
 plot(res$geom)
 
-# very tiny rectangle centroid
+# very tiny point centroid
 plot(geo_envelope(tibble(geom = centroid(res$geom)))$geom, add = TRUE)
 
 # generic soil profile data from aqp package (by horizon or layer -- depth stratififed)
