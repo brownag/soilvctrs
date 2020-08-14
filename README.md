@@ -1,3 +1,6 @@
+[![codecov](https://codecov.io/github/brownag/soilvctrs/branch/master/graphs/badge.svg)](https://codecov.io/github/brownag/soilvctrs)
+[![Build Status](https://img.shields.io/travis/brownag/soilvctrs/master.svg)](https://travis-ci.org/brownag/soilvctrs)
+
 ## Package: soilvctrs (0.0.0.1)
 ### Geometric operations on stratified environmental data
 ### Author: Andrew G. Brown
