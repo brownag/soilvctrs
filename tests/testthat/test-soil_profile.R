@@ -1,5 +1,5 @@
-# library(testthat)
-# library(soilvctrs)
+library(tibble)
+
 context("soil_layer")
 
 # test-file-wide variables in scope
@@ -15,20 +15,10 @@ test_that("soil_layer construction", {
   #  empty soil_layers with empty geometry
   expect_silent(soil_layer(layer = NULL))
   expect_warning(soil_layer(layer = NULL, metadata = NULL))
-  expect_equal(soil_layer()$geom, geovctrs::geo_rect()[0])
-
-  # check default attributes/metadata
-  expect_silent({
-    mono <- soil_layer()
-  })
-  expect_equal(attr(mono, "pid"), "pid")
-  expect_equal(attr(mono, "ztop"), "ztop")
-  expect_equal(attr(mono, "zbot"), "zbot")
+  #expect_equal(soil_layer()$geom, geovctrs::geo_rect()[0])
 
   # check public constructor and is.* method
   expect_equal(length(soil_layer()), 0)
-  expect_equal(vctrs::fields(soil_layer()), c("pid","hid","geom"))
-  expect_true(is.soil_layer(soil_layer()))
 
   cc <- function(l) {
     do.call('c', as.list(l))
@@ -54,12 +44,14 @@ test_that("soil_layer construction", {
   expect_silent(res <<- soil_layer(layer = dat,
                                    metadata = list(pid = "idd",
                                                    ztop = "topp",
-                                                   zbot = "bott",
-                                                   hid = NULL)))
+                                                   zbot = "bott", hid = NULL)))
+  expect_equal(vctrs::fields(res[[1]]), c("pid","hid","ztop","zbot","geom"))
+  expect_true(is.soil_layer(res[[1]]))
   expect_equal(length(res), 4)
   expect_equal(length(res[[1]]), 10)
   expect_equal(vctrs::fields(res[[2]]), c("pid","hid","ztop","zbot","geom"))
-
+  expect_equal(length(res[[1]][1:2, ]), 2)
+  expect_equal(length(c(res[[1]][1,],res[[2]][2,])), 2)
 })
 
 test_that("$ / $<- for soil_layer", {
@@ -105,7 +97,13 @@ test_that("error handling", {
 })
 
 test_that("plotting a single profile geom", {
-  expect_silent(plot(soil_layer()))
+
+  # layer data                                        ## SOIL LAYERS:
+  layers <- tibble::tibble(pid  = c(1,1,1,2,2,3,3),           # - unique profile IDs
+                   ztop = c(0,25,50,0,18,0,50),       # - layer upper boundaries
+                   zbot = c(25,50,190,18,90,50,90))   # - layer lower boundaries
+
+  expect_silent(plot(soil_layer(layers)[[1]]))
   expect_silent(plot(geo, col = colors))
 })
 

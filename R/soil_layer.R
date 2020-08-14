@@ -69,9 +69,11 @@ soil_layer <- function(layer = data.frame(pid = integer(0),
     }))
   } else foo <- geovctrs::geo_rect()[0]
 
+  res <- NULL
   grp <- as.numeric(factor(uid))
+
   if (length(grp)) {
-    lapply(1:max(grp), function(xx) {
+    res <- lapply(1:max(grp), function(xx) {
       idx <- which(xx == grp)
       if (length(idx)) {
         xxx <- c(vctrs::vec_recycle_common(pid = vctrs::vec_cast(uid[idx], integer()),
@@ -84,8 +86,18 @@ soil_layer <- function(layer = data.frame(pid = integer(0),
       }
     })
   } else {
-    .new_soil_layer()
+    res <- .new_soil_layer(x = list(pid=integer(0),hid=integer(0),
+                             ztop=double(0),zbot=double(0),
+                             geom=geovctrs::geo_rect()))
   }
+
+  if(length(res) == 0) {
+    return(vctrs::list_of(res)[0])
+  }
+  # attr(res, "ztop") <- metadata$ztop
+  # attr(res, "zbot") <- metadata$zbot
+  out <- vctrs::as_list_of(res)
+  return(out)
 }
 
 #' Get default soil_layer metadata
@@ -143,15 +155,12 @@ default_metadata_soil_layer <- function() {
   vctrs::vec_assert(x$hid, integer())
   vctrs::vec_assert(x$geom, geovctrs::geo_rect())
 
-  res <-   vctrs::new_rcrd(x, class = "soil_layer")
+  res <- vctrs::new_rcrd(x, class = "soil_layer")
 
   attr(res, "pid") <- metadata$pid
-  attr(res, "hid") <- metadata$hid
-  attr(res, "ztop") <- metadata$ztop
-  attr(res, "zbot") <- metadata$zbot
+
   return(res)
 }
-
 
 # class methods
 #' Does an R object inherit from soil_layer?
@@ -165,15 +174,6 @@ default_metadata_soil_layer <- function() {
 #'
 is.soil_layer <- function(x) {
   return(inherits(x, 'soil_layer'))
-}
-
-#' @export
-vec_ptype2.list.soil_layer <- function(x, y, metadata, ...) {
-  if (!requireNamespace("tibble"))
-    stop("package `tibble` is required", call. = FALSE)
-  if (!is.null(metadata))
-    return(soil_layer(layer = tibble::tibble(x), metadata = metadata))
-  soil_layer(layer = tibble::tibble(x))
 }
 
 #' Cash soil_layer

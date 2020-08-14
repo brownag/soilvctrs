@@ -30,7 +30,7 @@ soil_profile <-
     }
 
   if (nrow(layer) == 0 & any(!names(metadata) %in% colnames(layer))) {
-     profile <- list()
+     profile <- soil_layer()
   } else profile <- soil_layer(layer, metadata)
 
   pid <- metadata$pid
@@ -47,17 +47,16 @@ soil_profile <-
     uid <- integer(0)
 
   ## simple checks on IDs and spatial coordinates of the list elements (site level)
-
-  if (length(uid) != length(profile))
-    stop("number of soil_profile IDs must match number of soil_layer elements in input vector")
+  # if (length(uid) != length(profile$pid))
+  #   stop("number of soil_profile IDs must match number of soil_layer elements in input vector")
 
   xposd <- site[[xpos]]
   yposd <- site[[ypos]]
   zposd <- site[[zpos]]
 
-  if ((length(xposd) != length(profile)) |
+  if (length(profile) > 0 & ((length(xposd) != length(profile)) |
       (length(yposd) != length(profile)) |
-      (length(zposd) != length(profile)))
+      (length(zposd) != length(profile))))
     stop(sprintf("number of soil_profile XYZ-positions [%s,%s,%s] must match number of soil_layer elements in vector", xpos, ypos, zpos))
 
   if (is.null(xposd))
@@ -68,8 +67,8 @@ soil_profile <-
     zposd <- numeric(0)
 
   # construct soil profile object
-  .new_soil_profile(vctrs::vec_recycle_common(pid = vctrs::vec_cast(uid, integer()),
-                        profile = vctrs::vec_cast(profile, list()),
+  .new_soil_profile(vctrs::vec_recycle_common(pid = vctrs::vec_cast(uid, double()),
+                        profile = profile,
                         geom = vctrs::vec_cast(geovctrs::geo_xyz(xposd, yposd, zposd),
                                                geovctrs::geo_xyz())),
                     metadata)
@@ -110,8 +109,8 @@ default_metadata_soil_profile <- function() {
 #' @keywords internal
 #'
 .new_soil_profile <- function(x = list(
-  pid = integer(),                  # unique profile ID
-  profile = list(),                 # soil_layer for each element; horizon data
+  pid = double(),                  # unique profile ID
+  profile = vctrs::list_of(.ptype = soil_layer()), # soil_layer for each element; horizon data
   geom = geovctrs::geo_xyz()        # geometry
   # TODO: additional site-level vectors
 ), metadata = list(pid = "pid", hid  = "hid",
@@ -125,8 +124,9 @@ default_metadata_soil_profile <- function() {
   }
 
   # check datatypes
-  vctrs::vec_assert(x$pid, integer())
-  vctrs::vec_assert(x$profile, list()) # how to assert soil_layers while keeping them separate?
+  vctrs::vec_assert(x$pid, double())
+  #vctrs::vec_assert(x$profile, vctrs::list_of(.ptype = soil_layer()))
+  # # how to assert soil_layers while keeping them separate?
   vctrs::vec_assert(x$geom, geovctrs::geo_xyz())
 
   # create record object
