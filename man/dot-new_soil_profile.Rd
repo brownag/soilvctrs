@@ -5,7 +5,8 @@
 \title{Internal constructor for \code{soil_profile} object}
 \usage{
 .new_soil_profile(
-  x = list(pid = integer(), profile = list(), geom = geovctrs::geo_xyz()),
+  x = list(pid = double(), profile = vctrs::list_of(.ptype = soil_layer()), geom =
+    geovctrs::geo_xyz()),
   metadata = list(pid = "pid", hid = "hid", x = "x", y = "y", z = "z", ztop = "ztop",
     zbot = "zbot")
 )

@@ -1,5 +1,7 @@
+[![lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 [![codecov](https://codecov.io/github/brownag/soilvctrs/branch/master/graphs/badge.svg)](https://codecov.io/github/brownag/soilvctrs)
 [![Build Status](https://img.shields.io/travis/brownag/soilvctrs/master.svg)](https://travis-ci.org/brownag/soilvctrs)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://choosealicense.com/licenses/mit/)
 
 ## Package: soilvctrs (0.0.0.1)
 ### Geometric operations on stratified environmental data
@@ -35,64 +37,61 @@ sites <- tibble(pid = c(1,2,3),                     # - unique profile IDs
                 x   = c(37,38,37), y = c(34,35,36), # - XY coordinates
                 z   = c(203,224,212))               # - elevation
 
+# construct a soil_layer from a data.frame-like object
+horizons <- soil_layer(layers)
+
 # construct a soil_profile vctr from data.frame-like objects
 profiles <- soil_profile(layers, sites)
 ```
 
-The primary goal is to demonstrate concise soil-themed classes that “just work” with `tidyverse` principles. The author is not an expert in the internals of `vctrs` (or the new `geovctrs` package) so he expects to learn much more about both in the process of expanding this package. There is an opportunity to show "new" ways soil algorithms can be implemented: using efficient vctrs representations of properties and geometry.
+The primary goal of this package is to demonstrate concise soil-themed classes that “just work” with `tidyverse` principles. There is an opportunity to show "new" ways soil algorithms can be implemented: using efficient vctrs representations of properties and geometry.
 
 #### Classes defined by this package
 
 The current `soilvctrs` implementation represents parts of soil descriptions as S3 `vctrs::rcrd` objects: `soil_layer` and `soil_profile`. 
 
-`soil_profile` instances contain a list of `soil_layer` in the field `$profile` with length zero or more. `geom` fields are defined at both profile and layer levels to visualize and analyze associated data and can also be zero-length. 
+`soil_profile` instances contain a `vctrs::list_of` `soil_layer` in the field `$profile` with length zero or more. `geom` fields are defined at both profile and layer levels to visualize and analyze associated data and can also be zero-length. 
 
 ##### `soil_layer`
 
-An empty `soil_layer` is the fundamental building block of all `soilvctrs`. 
-
-A `soil_layer` contains three fields: `pid` (profile ID: _integer_), `hid` (layer or horizon ID: _integer_), `geom` (layer or horizon geometry: _geovctrs_rect_). `geom` is computed from the input boundary data -- currently the constructor only supports 1-dimensional profiles (Z only); this is temporary. The attributes describe the column names in the input data that were fed into fields of the same name; containing the profile ID, horizon ID and upper and lower (depth axis) boundaries, respectively. This basic `geom` concept is (probably?) extensible to complex geometric representations of the `soil_layer` (and thus the `soil_profile`) via nested `geovctrs`, the `sf` package or ???
+A `soil_layer` (with non-empty geometry) contains three fields: `pid` (profile ID: _integer_), `hid` (layer or horizon ID: _integer_), `geom` (layer or horizon geometry: _geovctrs_rect_). `geom` is computed from the input boundary data. If you use the constructor without any input data, you obtain a `list_of<soil_layer>` vector.
 
 ```
 soil_layer()
 
-# soil_layer<0> with 3 fields and 4 attributes
-# Fields: pid, hid, geom
-# Attributes: pid, hid, ztop, zbot
+# <list_of<soil_layer>[0]>
 ```
 
-`soil_layer` objects with length greater than zero can be constructed from data (`data.frame` subclasses + metadata) via `soil_layer()`. The default result of this public constructor is a `list` not a `soil_layer`. Each element of the `list`, presuming there were valid data entered, is a `soil_layer` with length equal to the appropriate number of layers grouped into vctrs by `pid`. 
+`soil_layer` vectors with length greater than zero can be constructed from data (`data.frame` subclasses + metadata) via `soil_layer()`. Each element of the `list`, presuming there were valid data entered, is a `soil_layer` with length equal to the appropriate number of layers grouped into vctrs by `pid`. 
 
-Note that the internal constructor `.new_soil_layer` is hidden -- but can be used via `soilvctrs:::.new_soil_layer`. Let me know if you have use cases where it is valuable to have this public -- say to build a single `soil_layer` vctr with several unique `pid` values?
+Note that the internal constructor `.new_soil_layer` is hidden -- but can be used via `soilvctrs:::.new_soil_layer`. Generally, it is thought that the `soil_layer` method producing the geometry and keeping parity with `pid` will be convenient. One can concatenate different parts of single-`pid` vectors together using `c`.
 
 ```
 layer <- data.frame(pid = c(1,1,2), ztop = c(0,10,0), zbot = c(10,50,50))
 
-soil_layer(layer)
+the.layers <- soil_layer(layer)
+the.layers
 
+# <list_of<soil_layer>[2]>
 # [[1]]
-# soil_layer<2> with 5 fields and 4 attributes
+# soil_layer<2> with 5 fields and 1 attributes
 # Fields: pid, hid, ztop, zbot, geom
-# Attributes: pid, hid, ztop, zbot
+# Attributes: pid
 # 
 # [[2]]
-# soil_layer<1> with 5 fields and 4 attributes
+# soil_layer<1> with 5 fields and 1 attributes
 # Fields: pid, hid, ztop, zbot, geom
-# Attributes: pid, hid, ztop, zbot
+# Attributes: pid
 
+# 2nd layer from first profile, 1st layer from 2nd profile in same vctr
+c(the.layers[[1]][2], the.layers[[2]][1])
 ```
-
-In default cases it is expected that unit-width rectangular geometries are used for horizon/layer representation. In this case the primary geometric variable is vertical depth thickness of a layer. This allows for easy re-scaling for plots, analysis etc.
-
-Applying scaling factors to width in this model is analogous to applying depth-weighting while preserving the geometry in Z -- though this is probably not going to be used much, it is an interesting angle to consider for a set of profile geometries tessellated along an axis.
 
 ##### `soil_profile`
  
 The `pid` field matches the `pid` found in the `soil_layer` vector `profile`. `geom` is a `geovctrs_xyz` ternary coordinate. Three additional attributes (beyond those created in the `soil_layer`) can be found in the `soil_profile` -- these are the names of the columns in the input data that contained X, Y and Z coordinates of the site. 
 
-Currently attributes are the only way to "track" provenance of data that gets funneled into the standard field names. This is in lieu of a true coordinate reference system / units / ability to handle metadata properly. _The metadata concept is likely to undergo significant revision soon with above things being addressed._ 
-
-You can use the `plot` method directly on a `soil_profile` to see all profiles tessellated and colored based on layer index.
+You can use the `plot` method directly on a `soil_profile` to see all profiles tessellated and colored based on layer index. If unit-width rectangular geometries are used [default, currently not easily modifiable] for horizon/layer representation the primary geometric variable by layer is vertical depth "thickness." Applying scaling factors to width in this model is analogous to applying depth-weighting while preserving the geometry in Z. It is an interesting angle to consider for a set of profile geometries tessellated along an axis.
 
 ```
 > soil_profile()
@@ -104,7 +103,9 @@ You can use the `plot` method directly on a `soil_profile` to see all profiles t
 
 The `soil_layer` and `soil_profile` are comprised of vector "fields" of length equal to number of horizons (in a profile) or number of profiles, respectively.
 
-The beauty of `rcrd` objects is that despite supporting arbitrary hierarchical complexity they are able to be manipulated like any `vctr`, added as columns in `tibble` data.frame subclasses and more. The specific `soil_layer` and `soil_profile` classes also (at least outwardly) draw some syntax from from the `data.frame` / `tibble`, define custom (rudimentary) plot / print / format methods. S3 methods including `$`, `[[`, `[`, and their `<-` counterparts are available for operations involving field names, indexes, access and replacement.
+The beauty of `rcrd` objects is that despite supporting arbitrary hierarchical complexity they are able to be manipulated like any `vctr`, added as columns in `tibble` data.frame subclasses and more.
+
+The specific `soil_layer` and `soil_profile` classes also (at least outwardly) draw some syntax from from the `data.frame` / `tibble`, define custom (rudimentary) plot / print / format methods. S3 methods including `$`, `[[`, `[`, and their `<-` counterparts are available for operations involving field names, indexes, access and replacement. There is still much more to be done to enhance how these objects interact with various `geovctrs` and `dplyr` functions.
 
 #### Examples
 
@@ -148,15 +149,6 @@ first_layers[,"hid"]
 	
 #### On similarities to `aqp`...
 
-This experiment is leveraging knowledge and experience I (Andrew) have gained as a major contributor to the Algorithms for Quantitative Pedology ([aqp](http://ncss-tech.github.io/AQP/)) project. 
+`soilvctrs` deliberately has less scope than `aqp` and imports only a couple libraries (`vctrs`, `geovctrs`) -- potentially useful for _extension_ in other packages. Further use of _nested_ `geovctrs` and the ability to directly manipulate profile geometric elements _outside_ of a graphics device has exciting (still theoretical) implications for _interactive_ profile plots, 2-dimensional profile descriptions and new algorithm design. This experiment is leveraging knowledge and experience I (Andrew) have gained as a major contributor to the Algorithms for Quantitative Pedology ([aqp](http://ncss-tech.github.io/AQP/)) project. For experimental reasons, I intend to "reproduce" core "bookkeeping" and graphical code with the goal of exploring new capabilities in an unconstrained way.
 
-The visual representation of soil profile sketches via Dylan Beaudette's `aqp::plotSPC` is a major conceptual inspiration for this work on `soilvctrs` -- though there is no code in common. I thank Dylan and other contributors to the AQP suite of R packages (_aqp_, _soilDB_, _sharpshootR_) for constant inspiration and much opportunity. As a contributor to `aqp`, I have no intention of superseding or "competing" with it in in this package. 
-
-However, for experimental reasons, I intend to reproduce core "bookkeeping" and graphical code with a goal to explore new capabilities in an unconstrained way.
-
-`aqp` has set the bar high with an immense distillation of concepts into analytic software for the masses. `soilvctrs` is definitively more developer focused and deliberately has less scope. Recent extensions allow the `SoilProfileCollection` to rely on compiled code for its workhorse functions -- making demanding computations much more favorable than they were. It is likely there will be no significant performance advantages for `soilvctrs` compared with a `data.table`-enhanced `SoilProfileCollection`.
-
-A benefit of `soilvctrs` package will be that it imports only a couple libraries (`vctrs`, `geovctrs`) and therefore is "contained" enough for inclusion or _extension_ in other packages. Further, use of _nested_ geometries and the ability to directly manipulate profile geometric elements outside of a graphics device has exciting (still theoretical) implications for _interactive_ profile plots, 2D profile descriptions, and new algorithm design.
-
-
-
+The visual representation of soil profile sketches via Dylan Beaudette's `aqp::plotSPC` is a major conceptual inspiration for this work on `soilvctrs`. I thank Dylan and other contributors to the AQP suite of R packages (_aqp_, _soilDB_, _sharpshootR_) for constant inspiration and much opportunity. As a contributor to `aqp`, I have no intention of superseding or "competing" with it in in this package. 
